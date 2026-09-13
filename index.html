@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ЛИВ Авто Табло</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F2EC;
+    --surface:#FFFFFF;
+    --surface-2:#ECE7DC;
+    --ink:#1B2430;
+    --ink-soft:#5B6472;
+    --ink-faint:#8A93A0;
+    --line:#DCD5C6;
+    --red:#C41E3A;
+    --red-ink:#8F1529;
+    --red-tint:#FBE7EA;
+    --status-received:#5B7A9D;
+    --status-received-tint:#E7EEF4;
+    --status-progress:#B96A16;
+    --status-progress-tint:#F7E9D8;
+    --status-ready:#3F7A4E;
+    --status-ready-tint:#E4F0E6;
+    --shadow: 0 8px 24px -12px rgba(27,36,48,.28);
+    --font-display:'Big Shoulders Display','Arial Narrow',sans-serif;
+    --font-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+    --font-mono:'IBM Plex Mono','Consolas',monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#12161D;
+      --surface:#1A202B;
+      --surface-2:#212836;
+      --ink:#ECE9E1;
+      --ink-soft:#9BA5B4;
+      --ink-faint:#69707E;
+      --line:#2C3341;
+      --red:#E14A63;
+      --red-ink:#FF8095;
+      --red-tint:#3A1E24;
+      --status-received:#8FB4DC;
+      --status-received-tint:#1E2A38;
+      --status-progress:#E3A75B;
+      --status-progress-tint:#332413;
+      --status-ready:#77C48C;
+      --status-ready-tint:#1B2E20;
+      --shadow: 0 8px 28px -12px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#12161D;
+    --surface:#1A202B;
+    --surface-2:#212836;
+    --ink:#ECE9E1;
+    --ink-soft:#9BA5B4;
+    --ink-faint:#69707E;
+    --line:#2C3341;
+    --red:#E14A63;
+    --red-ink:#FF8095;
+    --red-tint:#3A1E24;
+    --status-received:#8FB4DC;
+    --status-received-tint:#1E2A38;
+    --status-progress:#E3A75B;
+    --status-progress-tint:#332413;
+    --status-ready:#77C48C;
+    --status-ready-tint:#1B2E20;
+    --shadow: 0 8px 28px -12px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:16px;
+    line-height:1.5;
+    margin:0;
+  }
+  h1,h2,h3,.display{
+    font-family:var(--font-display);
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    text-wrap:balance;
+    font-weight:700;
+  }
+  button{font-family:inherit;}
+  input,textarea,select{
+    font-family:inherit;
+    font-size:inherit;
+    color:inherit;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:8px 10px;
+  }
+  input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,[tabindex]:focus-visible{
+    outline:2px solid var(--red);
+    outline-offset:2px;
+  }
+  .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important; transition-duration:.001ms !important;}
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex;align-items:center;gap:16px;
+    padding:14px 24px;
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:20;
+  }
+  .wordmark{display:flex;align-items:baseline;gap:8px;white-space:nowrap;}
+  .wordmark .liv{font-family:var(--font-display);font-size:26px;font-weight:800;color:var(--ink);letter-spacing:.01em;}
+  .wordmark .servis{font-family:var(--font-display);font-size:26px;font-weight:800;color:var(--red);letter-spacing:.01em;}
+  .tagline{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.12em;border-left:1px solid var(--line);padding-left:12px;}
+  .proto-pill{
+    font-size:10px;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--ink-faint);border:1px solid var(--line);border-radius:999px;
+    padding:3px 9px;
+  }
+  .topbar-spacer{flex:1;}
+  .mode-switch{display:flex;background:var(--surface-2);border-radius:8px;padding:3px;gap:2px;}
+  .mode-switch button{
+    border:none;background:transparent;padding:8px 16px;border-radius:6px;
+    font-weight:600;font-size:13px;color:var(--ink-soft);cursor:pointer;
+  }
+  .mode-switch button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* ---------- Kiosk / intake ---------- */
+  .kiosk-wrap{
+    min-height:calc(100vh - 68px);
+    display:flex;justify-content:center;align-items:flex-start;
+    padding:48px 20px;
+  }
+  .kiosk-card{
+    width:100%;max-width:560px;background:var(--surface);
+    border:1px solid var(--line);border-radius:16px;padding:36px 32px 32px;
+    box-shadow:var(--shadow);
+  }
+  .kiosk-card h2{font-size:28px;margin:0 0 4px;}
+  .kiosk-sub{color:var(--ink-soft);font-size:14px;margin:0 0 28px;}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;}
+  .field label{font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);}
+  .field input,.field textarea{padding:12px 14px;border-radius:8px;font-size:16px;width:100%;}
+  .field textarea{resize:vertical;min-height:88px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .row3{display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:14px;}
+  .match-banner{
+    display:flex;gap:10px;align-items:flex-start;
+    background:var(--status-ready-tint);border:1px solid var(--status-ready);
+    color:var(--ink);border-radius:10px;padding:12px 14px;margin:-4px 0 18px;font-size:14px;
+  }
+
+  /* ---------- Searchable combo (make / model / country) ---------- */
+  .combo{position:relative;}
+  .combo-list{
+    position:absolute;top:calc(100% + 5px);left:0;right:0;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    box-shadow:var(--shadow);max-height:230px;overflow-y:auto;z-index:50;
+    display:none;padding:4px;
+  }
+  .combo-list.open{display:block;}
+  .combo-item{padding:9px 11px;font-size:14.5px;cursor:pointer;border-radius:6px;display:flex;justify-content:space-between;gap:8px;}
+  .combo-item:hover{background:var(--surface-2);}
+  .combo-empty{padding:9px 11px;font-size:13px;color:var(--ink-faint);}
+  .phone-combo{position:relative;}
+  .phone-input{
+    display:flex;align-items:stretch;background:var(--surface);
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;
+  }
+  .phone-input:focus-within{outline:2px solid var(--red);outline-offset:1px;}
+  .phone-country-btn{
+    display:flex;align-items:center;gap:6px;border:none;background:transparent;
+    padding:0 12px;cursor:pointer;font-size:15px;color:var(--ink);flex:0 0 auto;
+  }
+  .phone-country-btn .chev{font-size:10px;color:var(--ink-faint);}
+  .phone-divider{width:1px;align-self:stretch;margin:9px 0;background:var(--line);}
+  .phone-input .phone-number{flex:1;min-width:0;border:none;border-radius:0;padding:12px 14px;}
+  .phone-input .phone-number:focus-visible{outline:none;}
+
+  .country-popup{
+    position:absolute;top:calc(100% + 6px);left:0;width:300px;max-width:calc(100vw - 40px);
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    box-shadow:var(--shadow);z-index:50;display:none;overflow:hidden;
+  }
+  .country-popup.open{display:block;}
+  .country-search{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);}
+  .country-search input{flex:1;border:none;padding:0;font-size:14px;background:transparent;}
+  .country-search input:focus-visible{outline:none;}
+  .country-list{max-height:230px;overflow-y:auto;padding:6px;}
+  .country-item{
+    display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:8px;
+    cursor:pointer;font-size:14px;
+  }
+  .country-item:hover,.country-item.active{background:var(--surface-2);}
+  .country-item .cname{flex:1;}
+  .country-item .ccode{color:var(--ink-faint);}
+  .flag-box{display:inline-flex;flex:0 0 auto;width:22px;height:16px;}
+  .flag-svg{display:block;width:100%;height:100%;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.15) inset;}
+  .btn{
+    border:none;border-radius:8px;padding:12px 20px;font-weight:700;font-size:14px;
+    cursor:pointer;text-transform:uppercase;letter-spacing:.04em;
+  }
+  .btn-primary{background:var(--red);color:#fff;width:100%;padding:14px;font-size:15px;}
+  .btn-primary:hover{background:var(--red-ink);}
+  .btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
+  .btn-ghost:hover{color:var(--ink);border-color:var(--ink-faint);}
+  .btn-small{padding:8px 13px;font-size:13px;border-radius:6px;}
+
+  .confirm{
+    text-align:center;padding:40px 10px;
+  }
+  .confirm .check{
+    width:56px;height:56px;border-radius:50%;background:var(--status-ready-tint);
+    color:var(--status-ready);display:flex;align-items:center;justify-content:center;
+    margin:0 auto 18px;font-size:28px;
+  }
+  .confirm h2{margin:0 0 8px;}
+  .confirm p{color:var(--ink-soft);margin:0 0 26px;}
+
+  /* ---------- Dashboard / board ---------- */
+  .board-wrap{padding:22px 24px 48px;}
+  .board-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
+  .board-head h1{font-size:22px;margin:0;}
+  .board-date{color:var(--ink-faint);font-size:12.5px;}
+  .board{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
+    overflow-x:auto;
+  }
+  @media (max-width:860px){
+    .board{grid-template-columns:1fr;}
+  }
+  .col{background:var(--surface-2);border-radius:12px;padding:14px;min-width:0;}
+  .col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 2px;}
+  .col-head .label{font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:.05em;}
+  .col-head .count{
+    font-family:var(--font-mono);font-size:12px;background:var(--surface);
+    border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--ink-soft);
+  }
+  .col[data-status="received"] .col-head .label{color:var(--status-received);}
+  .col[data-status="progress"] .col-head .label{color:var(--status-progress);}
+  .col[data-status="ready"] .col-head .label{color:var(--status-ready);}
+  .cards{display:flex;flex-direction:column;gap:10px;}
+  .empty-col{color:var(--ink-faint);font-size:12.5px;padding:18px 8px;text-align:center;border:1px dashed var(--line);border-radius:8px;}
+
+  .card{
+    background:var(--surface);border-radius:10px;border:1px solid var(--line);
+    border-left:4px solid var(--stripe,var(--ink-faint));
+    padding:12px 14px;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,.02);
+    display:flex;flex-direction:column;gap:8px;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .card:hover{transform:translateY(-1px);box-shadow:var(--shadow);}
+  .card.dragging{opacity:.4;}
+  .col.drag-over{outline:2px dashed var(--ink-faint);outline-offset:-6px;background:var(--surface);}
+  .card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .plate{
+    display:inline-flex;align-items:stretch;border-radius:4px;overflow:hidden;
+    border:1px solid #9AA0A8;font-family:var(--font-mono);font-weight:600;font-size:12.5px;
+    box-shadow:0 1px 2px rgba(0,0,0,.15);
+  }
+  .plate .bg{background:#1546A0;color:#fff;font-size:8px;font-weight:700;padding:3px 3px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:-1px;}
+  .plate .num{background:#fff;color:#111;padding:3px 7px;letter-spacing:.03em;}
+  .card-vehicle{font-size:16.5px;font-weight:700;color:var(--ink);}
+  .card-customer{font-size:13px;color:var(--ink-soft);}
+  .card-issue{font-size:13px;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .history-list{display:flex;flex-direction:column;gap:10px;}
+  .history-row{
+    display:flex;align-items:center;gap:16px;background:var(--surface);
+    border:1px solid var(--line);border-radius:10px;padding:12px 18px;cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .history-row:hover{transform:translateY(-1px);box-shadow:var(--shadow);}
+  .history-main{min-width:0;}
+  .history-vehicle{font-weight:700;font-size:15px;}
+  .history-customer{font-size:12.5px;color:var(--ink-soft);}
+  .history-issue{flex:1;min-width:0;font-size:12.5px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .history-date{font-size:12px;color:var(--ink-faint);white-space:nowrap;}
+  .history-total{font-size:14px;font-weight:600;white-space:nowrap;}
+  .table-scroll{overflow-x:auto;}
+  .call-flag{
+    display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+    color:var(--red);background:var(--red-tint);border-radius:6px;padding:3px 7px;width:fit-content;
+    text-transform:uppercase;letter-spacing:.03em;
+  }
+
+  /* ---------- Detail panel ---------- */
+  .backdrop{
+    position:fixed;inset:0;background:rgba(15,18,24,.42);
+    opacity:0;pointer-events:none;transition:opacity .18s ease;z-index:30;
+  }
+  .backdrop.open{opacity:1;pointer-events:auto;}
+  .panel{
+    position:fixed;top:50%;left:50%;
+    width:min(860px, 94vw);max-height:90vh;
+    background:var(--surface);border:1px solid var(--line);border-radius:18px;
+    transform:translate(-50%,-48%) scale(.97);opacity:0;pointer-events:none;
+    transition:transform .18s ease, opacity .18s ease;
+    z-index:31;display:flex;flex-direction:column;
+    box-shadow:0 30px 70px -16px rgba(15,18,24,.45);
+  }
+  .panel.open{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto;}
+  .panel-head{padding:24px 30px 18px;border-bottom:1px solid var(--line);}
+  .panel-close{
+    float:right;border:none;background:var(--surface-2);color:var(--ink-soft);
+    width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;
+  }
+  .panel-title{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap;}
+  .panel-title h2{font-size:26px;margin:0;}
+  .panel-sub{color:var(--ink-soft);font-size:14px;}
+  .panel-sub a{color:var(--ink-soft);}
+  .panel-body{padding:24px 30px 34px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:24px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+  @media (max-width:640px){ .two-col{grid-template-columns:1fr;} }
+
+  .stepper{display:flex;gap:6px;}
+  .step-btn{
+    flex:1;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);
+    padding:10px 6px;border-radius:8px;font-size:13px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.03em;cursor:pointer;
+  }
+  .step-btn[data-s="received"].is-active{background:var(--status-received-tint);border-color:var(--status-received);color:var(--status-received);}
+  .step-btn[data-s="progress"].is-active{background:var(--status-progress-tint);border-color:var(--status-progress);color:var(--status-progress);}
+  .step-btn[data-s="ready"].is-active{background:var(--status-ready-tint);border-color:var(--status-ready);color:var(--status-ready);}
+
+  .reminder{
+    display:flex;gap:10px;align-items:flex-start;background:var(--red-tint);
+    border:1px solid var(--red);border-radius:10px;padding:12px 14px;
+  }
+  .reminder .bell{font-size:18px;}
+  .reminder strong{display:block;font-size:13.5px;margin-bottom:2px;}
+  .reminder p{margin:0 0 10px;font-size:12.5px;color:var(--ink-soft);}
+  .called-note{
+    display:flex;gap:8px;align-items:center;background:var(--status-ready-tint);
+    color:var(--status-ready);border:1px solid var(--status-ready);border-radius:10px;
+    padding:10px 14px;font-size:12.5px;font-weight:600;
+  }
+
+  .section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:8px;}
+  .panel-body textarea{width:100%;padding:12px 14px;border-radius:8px;font-size:15px;resize:vertical;min-height:96px;}
+  .locked-banner{display:flex;align-items:center;justify-content:space-between;background:var(--surface-2);border-radius:8px;padding:10px 12px;font-size:12.5px;color:var(--ink-soft);}
+
+  table.items{width:100%;border-collapse:collapse;font-size:14px;}
+  table.items th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);padding-bottom:6px;font-weight:600;}
+  table.items td{padding:5px 4px;border-top:1px solid var(--line);}
+  table.items td input{padding:6px 8px;font-size:14px;}
+  table.items td.qty input,table.items td.price input{width:100%;text-align:right;}
+  table.items td.rm{width:26px;}
+  table.items td.rm button{border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:15px;}
+  .items-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:13px;}
+  .items-foot .sub{color:var(--ink-soft);}
+  .final-price{display:flex;align-items:center;gap:10px;margin-top:12px;}
+  .final-price label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+  .final-price input{width:120px;text-align:right;font-family:var(--font-mono);}
+
+  .history-item{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:8px 0;border-top:1px solid var(--line);color:var(--ink-soft);}
+  .history-item:first-child{border-top:none;}
+  .history-item .d{font-family:var(--font-mono);color:var(--ink-faint);white-space:nowrap;}
+
+  .actions-row{display:flex;gap:10px;flex-wrap:wrap;}
+
+  .pdf-overlay{
+    position:fixed;inset:0;background:rgba(15,18,24,.55);z-index:40;
+    display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;
+    opacity:0;pointer-events:none;transition:opacity .18s ease;overflow-y:auto;
+  }
+  .pdf-overlay.open{opacity:1;pointer-events:auto;}
+  .pdf-doc{
+    background:#fff;color:#1B2430;width:100%;max-width:620px;border-radius:4px;
+    padding:40px 44px;box-shadow:0 20px 60px rgba(0,0,0,.4);font-family:var(--font-body);
+  }
+  .pdf-doc .pdf-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--red);padding-bottom:14px;margin-bottom:20px;}
+  .pdf-doc .pdf-head .liv{font-family:var(--font-display);font-weight:800;font-size:22px;}
+  .pdf-doc .pdf-head .liv span{color:var(--red);}
+  .pdf-doc .pdf-head .addr{font-size:11px;color:#5B6472;text-align:right;line-height:1.5;}
+  .pdf-doc h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8A93A0;margin:18px 0 6px;font-family:var(--font-body);font-weight:700;}
+  .pdf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;margin-bottom:6px;}
+  .pdf-doc table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;}
+  .pdf-doc table th{text-align:left;border-bottom:1px solid #DCD5C6;padding:6px 4px;font-size:10.5px;text-transform:uppercase;color:#8A93A0;}
+  .pdf-doc table td{padding:6px 4px;border-bottom:1px solid #EFEBE2;}
+  .pdf-doc table td.num{text-align:right;font-family:var(--font-mono);}
+  .pdf-total{display:flex;justify-content:flex-end;gap:14px;margin-top:12px;font-size:15px;font-weight:700;}
+  .pdf-close-row{text-align:right;margin-top:18px;}
+  .pdf-note{font-size:11px;color:var(--ink-faint);text-align:center;margin-top:10px;}
+
+  /* ---------- Mobile ---------- */
+  @media (max-width:700px){
+    .topbar{flex-wrap:wrap;padding:12px 16px;gap:10px;row-gap:10px;}
+    .tagline{display:none;}
+    .wordmark .liv,.wordmark .servis{font-size:20px;}
+    .topbar-spacer{display:none;}
+    .mode-switch{order:3;width:100%;}
+    .mode-switch button{flex:1;padding:9px 6px;font-size:12px;}
+
+    .kiosk-wrap{padding:20px 12px;}
+    .kiosk-card{padding:24px 18px 22px;}
+    .kiosk-card h2{font-size:23px;}
+    .row2,.row3{grid-template-columns:1fr;}
+
+    .board-wrap{padding:16px 14px 32px;}
+    .board-head h1{font-size:19px;}
+
+    .panel{width:96vw;max-height:94vh;border-radius:14px;}
+    .panel-head{padding:18px 16px 12px;}
+    .panel-close{width:30px;height:30px;}
+    .panel-title h2{font-size:20px;}
+    .panel-body{padding:16px 16px 26px;gap:18px;}
+
+    .pdf-overlay{padding:16px 10px;}
+    .pdf-doc{padding:26px 18px;}
+    .pdf-grid{grid-template-columns:1fr;gap:4px;}
+    .pdf-doc .pdf-head{flex-direction:column;gap:10px;}
+    .pdf-doc .pdf-head .addr{text-align:left;}
+
+    .history-row{flex-wrap:wrap;row-gap:6px;}
+    .history-issue{display:none;}
+    .history-total{margin-left:auto;}
+  }
+  @media (max-width:420px){
+    .wordmark .liv,.wordmark .servis{font-size:17px;}
+    .proto-pill{display:none;}
+    .card-vehicle{font-size:15px;}
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="wordmark"><span class="liv">ЛИВ АВТО</span><span class="servis">СЕРВИЗ</span></div>
+  <div class="tagline">Автоматични&nbsp;скоростни&nbsp;кутии</div>
+  <span class="proto-pill">Прототип</span>
+  <div class="topbar-spacer"></div>
+  <div class="mode-switch">
+    <button id="btn-mode-board" class="active" onclick="setMode('board')">Табло</button>
+    <button id="btn-mode-kiosk" onclick="setMode('kiosk')">Прием</button>
+    <button id="btn-mode-history" onclick="setMode('history')">История</button>
+  </div>
+</div>
+
+<!-- KIOSK -->
+<div id="screen-kiosk" class="screen">
+  <div class="kiosk-wrap">
+    <div class="kiosk-card" id="kiosk-card">
+      <h2>Прием на автомобил</h2>
+      <p class="kiosk-sub">Попълнете данните по-долу — собственикът ще прегледа автомобила веднага след Вас.</p>
+      <div id="match-banner-slot"></div>
+      <form id="intake-form" onsubmit="submitIntake(event)">
+        <div class="row2">
+          <div class="field"><label>Име и фамилия</label><input required id="in-name"></div>
+          <div class="field">
+            <label>Телефон</label>
+            <div class="phone-combo" id="phone-combo">
+              <div class="phone-input" id="phone-input">
+                <button type="button" class="phone-country-btn" id="country-btn" onclick="toggleCountryList(event)">
+                  <span id="country-flag" class="flag-box"></span>
+                  <span id="country-code-label" class="mono">+359</span>
+                  <span class="chev">▾</span>
+                </button>
+                <span class="phone-divider"></span>
+                <input required id="in-phone" class="phone-number">
+              </div>
+              <div class="country-popup" id="country-popup">
+                <div class="country-search">
+                  <span>🔍</span>
+                  <input id="country-search-input" placeholder="Търсене на държава…" autocomplete="off" oninput="renderCountryList(this.value)">
+                </div>
+                <div class="country-list" id="country-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="field"><label>Регистрационен номер</label><input required id="in-plate" oninput="checkPlateMatch()" style="text-transform:uppercase;font-family:var(--font-mono);letter-spacing:.05em;"></div>
+        <div class="row2">
+          <div class="field">
+            <label>Марка</label>
+            <div class="combo">
+              <input class="combo-input" id="in-make" autocomplete="off">
+              <div class="combo-list" id="list-make"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Модел</label>
+            <div class="combo">
+              <input class="combo-input" id="in-model" autocomplete="off">
+              <div class="combo-list" id="list-model"></div>
+            </div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Година</label><input required id="in-year" type="number" min="1980" max="2026"></div>
+          <div class="field"><label>Пробег (км)</label><input id="in-mileage" type="number"></div>
+        </div>
+        <div class="field"><label>Опишете проблема</label><textarea required id="in-issue"></textarea></div>
+        <button class="btn btn-primary" type="submit">Изпрати за преглед</button>
+      </form>
+    </div>
+
+    <div class="kiosk-card confirm" id="kiosk-confirm" style="display:none;">
+      <div class="check">✓</div>
+      <h2>Благодарим, <span id="confirm-name"></span>!</h2>
+      <p>Автомобилът е записан в системата. Ще Ви се обадим веднага щом имаме диагноза или е готов.</p>
+      <button class="btn btn-ghost" onclick="resetKiosk()">Ново приемане</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOARD -->
+<div id="screen-board" class="screen active">
+  <div class="board-wrap">
+    <div class="board-head">
+      <h1>Работно табло</h1>
+      <span class="board-date" id="board-date"></span>
+    </div>
+    <div class="board">
+      <div class="col" data-status="received" ondragover="allowDrop(event)" ondragenter="event.currentTarget.classList.add('drag-over')" ondragleave="event.currentTarget.classList.remove('drag-over')" ondrop="onDrop(event,'received')">
+        <div class="col-head"><span class="label">Приети</span><span class="count" id="count-received">0</span></div>
+        <div class="cards" id="cards-received"></div>
+      </div>
+      <div class="col" data-status="progress" ondragover="allowDrop(event)" ondragenter="event.currentTarget.classList.add('drag-over')" ondragleave="event.currentTarget.classList.remove('drag-over')" ondrop="onDrop(event,'progress')">
+        <div class="col-head"><span class="label">В процес</span><span class="count" id="count-progress">0</span></div>
+        <div class="cards" id="cards-progress"></div>
+      </div>
+      <div class="col" data-status="ready" ondragover="allowDrop(event)" ondragenter="event.currentTarget.classList.add('drag-over')" ondragleave="event.currentTarget.classList.remove('drag-over')" ondrop="onDrop(event,'ready')">
+        <div class="col-head"><span class="label">Готови</span><span class="count" id="count-ready">0</span></div>
+        <div class="cards" id="cards-ready"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div id="screen-history" class="screen">
+  <div class="board-wrap">
+    <div class="board-head">
+      <h1>История на предадени автомобили</h1>
+      <span class="board-date" id="history-count"></span>
+    </div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closeDetail()"></div>
+<div class="panel" id="panel"></div>
+<div class="pdf-overlay" id="pdf-overlay"></div>
+
+<script>
+const STATUS_LABEL = {received:'Приети', progress:'В процес', ready:'Готови'};
+const STORE_KEY = 'livauto_orders_v3';
+
+const CAR_DATA = {
+  'Škoda':['Octavia','Fabia','Superb','Kodiaq','Rapid'],
+  'Volkswagen':['Passat','Golf','Polo','Tiguan','Touran'],
+  'Kia':['Sportage','Ceed','Sorento','Rio','Picanto'],
+  'Hyundai':['Tucson','i30','Santa Fe','i20'],
+  'Opel':['Insignia','Astra','Corsa','Zafira'],
+  'Renault':['Megane','Clio','Scenic','Kadjar'],
+  'Peugeot':['308','208','3008','5008'],
+  'Citroën':['C4','C3','C5 Aircross'],
+  'Ford':['Focus','Fiesta','Kuga','Mondeo'],
+  'BMW':['3 Series','5 Series','X3','X5'],
+  'Mercedes-Benz':['C-Class','E-Class','GLC','A-Class'],
+  'Audi':['A4','A6','Q5','A3'],
+  'Toyota':['Corolla','RAV4','Yaris','Auris'],
+  'Nissan':['Qashqai','Juke','X-Trail'],
+  'Mazda':['3','6','CX-5'],
+  'Honda':['Civic','CR-V','Accord'],
+  'Seat':['Leon','Ibiza','Ateca'],
+  'Fiat':['500','Panda','Tipo'],
+  'Dacia':['Duster','Sandero','Logan'],
+  'Volvo':['XC60','V40','XC90'],
+  'Mini':['Cooper','Countryman'],
+};
+const MAKES = Object.keys(CAR_DATA);
+
+function svgWrap(inner){ return `<svg viewBox="0 0 30 20" class="flag-svg">${inner}</svg>`; }
+function hStripes(colors){
+  const h = 20/colors.length;
+  return colors.map((c,i)=>`<rect y="${(i*h).toFixed(2)}" width="30" height="${(h+0.03).toFixed(2)}" fill="${c}"/>`).join('');
+}
+function vStripes(colors){
+  const w = 30/colors.length;
+  return colors.map((c,i)=>`<rect x="${(i*w).toFixed(2)}" width="${(w+0.03).toFixed(2)}" height="20" fill="${c}"/>`).join('');
+}
+function starPath(cx,cy,points,rOuter,rInner,rotateDeg){
+  rotateDeg = rotateDeg || -90;
+  let d = '';
+  const step = Math.PI/points;
+  for(let i=0;i<points*2;i++){
+    const r = i%2===0 ? rOuter : rInner;
+    const angle = rotateDeg*Math.PI/180 + i*step;
+    d += (i===0?'M':'L') + (cx+r*Math.cos(angle)).toFixed(2) + ',' + (cy+r*Math.sin(angle)).toFixed(2) + ' ';
+  }
+  return d + 'Z';
+}
+
+const FLAGS = {
+  BG: svgWrap(hStripes(['#fff','#00966E','#D62612'])),
+  RO: svgWrap(vStripes(['#002B7F','#FCD116','#CE1126'])),
+  GR: svgWrap(hStripes(['#0D5EAF','#fff','#0D5EAF','#fff','#0D5EAF','#fff','#0D5EAF','#fff','#0D5EAF'])
+      + `<rect width="12" height="11.11" fill="#0D5EAF"/><rect x="4.8" width="2.4" height="11.11" fill="#fff"/><rect y="4.36" width="12" height="2.4" fill="#fff"/>`),
+  MK: svgWrap(`<rect width="30" height="20" fill="#D20000"/><path d="${starPath(15,10,8,9.5,4.2)}" fill="#FFE600"/>`),
+  RS: svgWrap(hStripes(['#C6363C','#0C4076','#fff'])),
+  TR: svgWrap(`<rect width="30" height="20" fill="#E30A17"/><circle cx="11" cy="10" r="5" fill="#fff"/><circle cx="12.6" cy="10" r="4" fill="#E30A17"/><path d="${starPath(16.6,10,5,2,0.8)}" fill="#fff"/>`),
+  DE: svgWrap(hStripes(['#000000','#DD0000','#FFCE00'])),
+  GB: svgWrap(`<rect width="30" height="20" fill="#00247D"/><path d="M0,0 L30,20 M30,0 L0,20" stroke="#fff" stroke-width="4"/><path d="M0,0 L30,20 M30,0 L0,20" stroke="#CF142B" stroke-width="1.6"/><rect x="12" width="6" height="20" fill="#fff"/><rect y="7" width="30" height="6" fill="#fff"/><rect x="13" width="4" height="20" fill="#CF142B"/><rect y="8" width="30" height="4" fill="#CF142B"/>`),
+  IT: svgWrap(vStripes(['#009246','#fff','#CE2B37'])),
+  FR: svgWrap(vStripes(['#0055A4','#fff','#EF4135'])),
+  UA: svgWrap(hStripes(['#0057B7','#FFD700'])),
+  PL: svgWrap(hStripes(['#fff','#DC143C'])),
+  ES: svgWrap(`<rect width="30" height="20" fill="#AA151B"/><rect y="5" width="30" height="10" fill="#F1BF00"/>`),
+  NL: svgWrap(hStripes(['#AE1C28','#fff','#21468B'])),
+};
+
+const COUNTRIES = [
+  {code:'+359', name:'България', flag:FLAGS.BG},
+  {code:'+40', name:'Румъния', flag:FLAGS.RO},
+  {code:'+30', name:'Гърция', flag:FLAGS.GR},
+  {code:'+389', name:'Северна Македония', flag:FLAGS.MK},
+  {code:'+381', name:'Сърбия', flag:FLAGS.RS},
+  {code:'+90', name:'Турция', flag:FLAGS.TR},
+  {code:'+49', name:'Германия', flag:FLAGS.DE},
+  {code:'+44', name:'Обединено кралство', flag:FLAGS.GB},
+  {code:'+39', name:'Италия', flag:FLAGS.IT},
+  {code:'+33', name:'Франция', flag:FLAGS.FR},
+  {code:'+380', name:'Украйна', flag:FLAGS.UA},
+  {code:'+48', name:'Полша', flag:FLAGS.PL},
+  {code:'+34', name:'Испания', flag:FLAGS.ES},
+  {code:'+31', name:'Нидерландия', flag:FLAGS.NL},
+];
+
+function seed(){
+  return [
+    {id:1, plate:'СА1234ВХ', make:'Škoda', model:'Octavia', year:2016, mileage:187000, name:'Иван Петров', phone:'+359 888 123 456',
+     issue:'Скоростната кутия удря при превключване от 2-ра на 3-та.', diagnosis:'Вероятно износени сепаратори в мехатроника, засичане на грешка P17хх.',
+     status:'progress', items:[{name:'Маслен филтър ДСГ',qty:1,price:45},{name:'Масло ДСГ (л)',qty:7,price:18},{name:'Труд — смяна мехатроник',qty:1,price:220}],
+     finalPrice:null, createdAt:'08.09', readyAt:null, pickedUpAt:null, locked:false, archived:false, called:false,
+     history:[{date:'14.03.2025','summary':'Смяна масло ДСГ и филтър, чистене мехатроник'}]},
+
+    {id:2, plate:'РВ5566КМ', make:'Volkswagen', model:'Passat', year:2018, mileage:96000, name:'Мария Георгиева', phone:'+359 898 552 013',
+     issue:'Не влиза на задна скорост, чува се леко чукане.', diagnosis:'', status:'received', items:[], finalPrice:null,
+     createdAt:'12.09', readyAt:null, pickedUpAt:null, locked:false, archived:false, called:false, history:[]},
+
+    {id:3, plate:'СВ9081АН', make:'Renault', model:'Megane', year:2015, mileage:203000, name:'Стоян Колев', phone:'+359 877 340 219',
+     issue:'Хлъзга на високи обороти и мирише леко на изгоряло масло.', diagnosis:'', status:'received', items:[], finalPrice:null,
+     createdAt:'12.09', readyAt:null, pickedUpAt:null, locked:false, archived:false, called:false, history:[]},
+
+    {id:4, plate:'С7744РТ', make:'Kia', model:'Sportage', year:2019, mileage:71000, name:'Десислава Иванова', phone:'+359 888 771 940',
+     issue:'Грешка на таблото и мига скоростният лост на автомат.', diagnosis:'Дефектен сензор за позиция на лоста (TR sensor), заменен.',
+     status:'ready', items:[{name:'TR сензор',qty:1,price:96},{name:'Труд — диагностика и смяна',qty:1,price:80}],
+     finalPrice:null, createdAt:'10.09', readyAt:'12.09', pickedUpAt:null, locked:false, archived:false, called:false, history:[]},
+
+    {id:5, plate:'СА2210ХК', make:'Opel', model:'Insignia', year:2014, mileage:238000, name:'Николай Тодоров', phone:'+40 744 210 887',
+     issue:'Автоматът не превключва плавно при студен старт.', diagnosis:'Смяна маслен филтър, ново масло и адаптиране на кутията.',
+     status:'ready', items:[{name:'Маслен филтър automatic',qty:1,price:52},{name:'Масло (л)',qty:6,price:16},{name:'Труд — смяна и адаптация',qty:1,price:120}],
+     finalPrice:410, createdAt:'09.09', readyAt:'11.09', pickedUpAt:null, locked:false, archived:false, called:true, history:[
+       {date:'02.11.2024', summary:'Диагностика — грешка Check Engine, изчистена'}
+     ]},
+
+    {id:6, plate:'СТ4482НР', make:'Toyota', model:'Corolla', year:2017, mileage:158000, name:'Георги Ангелов', phone:'+359 887 220 415',
+     issue:'Не превключва на 4-та предавка.', diagnosis:'Смяна на соленоиден пакет в автоматичната кутия.',
+     status:'ready', items:[{name:'Соленоиден пакет',qty:1,price:180},{name:'Труд — смяна и адаптация',qty:1,price:150}],
+     finalPrice:330, createdAt:'02.09', readyAt:'05.09', pickedUpAt:'06.09', locked:true, archived:true, called:true, history:[]},
+  ];
+}
+
+let orders = [];
+try{
+  const raw = localStorage.getItem(STORE_KEY);
+  orders = raw ? JSON.parse(raw) : seed();
+}catch(e){ orders = seed(); }
+
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(orders)); }catch(e){} }
+function findOrder(id){ return orders.find(o=>o.id===id); }
+
+function setMode(mode){
+  document.getElementById('screen-board').classList.toggle('active', mode==='board');
+  document.getElementById('screen-kiosk').classList.toggle('active', mode==='kiosk');
+  document.getElementById('screen-history').classList.toggle('active', mode==='history');
+  document.getElementById('btn-mode-board').classList.toggle('active', mode==='board');
+  document.getElementById('btn-mode-kiosk').classList.toggle('active', mode==='kiosk');
+  document.getElementById('btn-mode-history').classList.toggle('active', mode==='history');
+  closeDetail();
+}
+
+function normPlate(v){ return (v||'').toUpperCase().replace(/[\s-]/g,''); }
+
+let selectedCountry = COUNTRIES[0];
+function setCountry(c){
+  selectedCountry = c;
+  document.getElementById('country-flag').innerHTML = c.flag;
+  document.getElementById('country-code-label').textContent = c.code;
+}
+function renderCountryList(q){
+  q = (q||'').toLowerCase();
+  const list = document.getElementById('country-list');
+  const filtered = COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.code.includes(q));
+  list.innerHTML = filtered.length ? filtered.map(c=>`
+    <div class="country-item" data-code="${c.code}">
+      <span class="flag-box">${c.flag}</span><span class="cname">${c.name}</span><span class="ccode mono">${c.code}</span>
+    </div>`).join('') : `<div class="combo-empty">Няма съвпадение</div>`;
+  list.querySelectorAll('.country-item').forEach(el=>{
+    el.addEventListener('mousedown', e=>{
+      e.preventDefault();
+      setCountry(COUNTRIES.find(c=>c.code===el.dataset.code));
+      closeCountryList();
+    });
+  });
+}
+function toggleCountryList(ev){
+  ev.stopPropagation();
+  document.getElementById('country-popup').classList.contains('open') ? closeCountryList() : openCountryList();
+}
+function openCountryList(){
+  document.getElementById('country-popup').classList.add('open');
+  const search = document.getElementById('country-search-input');
+  search.value = '';
+  renderCountryList('');
+  setTimeout(()=>search.focus(), 0);
+  document.addEventListener('mousedown', onOutsideCountryClick);
+}
+function closeCountryList(){
+  document.getElementById('country-popup').classList.remove('open');
+  document.removeEventListener('mousedown', onOutsideCountryClick);
+}
+function onOutsideCountryClick(e){
+  if(!document.getElementById('phone-combo').contains(e.target)) closeCountryList();
+}
+
+function splitPhone(phone){
+  const m = /^(\+\d{1,4})\s*(.*)$/.exec((phone||'').trim());
+  if(m && COUNTRIES.some(c=>c.code===m[1])) return {code:m[1], number:m[2]};
+  return {code:'+359', number:(phone||'').replace(/^0/,'').trim()};
+}
+
+function checkPlateMatch(){
+  const val = normPlate(document.getElementById('in-plate').value);
+  const slot = document.getElementById('match-banner-slot');
+  if(val.length < 6){ slot.innerHTML=''; return; }
+  const match = orders.find(o=> normPlate(o.plate)===val);
+  if(match){
+    slot.innerHTML = `<div class="match-banner">🔎<div><strong>Открихме предишен клиент:</strong> ${match.name} — ${match.make} ${match.model}. Данните са попълнени автоматично.</div></div>`;
+    document.getElementById('in-name').value = match.name;
+    const {code, number} = splitPhone(match.phone);
+    setCountry(COUNTRIES.find(c=>c.code===code) || COUNTRIES[0]);
+    document.getElementById('in-phone').value = number;
+    document.getElementById('in-make').value = match.make;
+    document.getElementById('in-model').value = match.model;
+    document.getElementById('in-year').value = match.year;
+  } else {
+    slot.innerHTML = '';
+  }
+}
+
+function submitIntake(ev){
+  ev.preventDefault();
+  const name = document.getElementById('in-name').value.trim();
+  const countryCode = selectedCountry.code;
+  const newOrder = {
+    id: Date.now(),
+    plate: document.getElementById('in-plate').value.trim().toUpperCase(),
+    make: document.getElementById('in-make').value.trim(),
+    model: document.getElementById('in-model').value.trim(),
+    year: +document.getElementById('in-year').value || '',
+    mileage: +document.getElementById('in-mileage').value || null,
+    name, phone: `${countryCode} ${document.getElementById('in-phone').value.trim()}`,
+    issue: document.getElementById('in-issue').value.trim(),
+    diagnosis:'', status:'received', items:[], finalPrice:null,
+    createdAt: new Date().toLocaleDateString('bg-BG',{day:'2-digit',month:'2-digit'}),
+    readyAt:null, locked:false, called:false, history:[]
+  };
+  orders.unshift(newOrder);
+  save(); render();
+  document.getElementById('kiosk-card').style.display='none';
+  document.getElementById('confirm-name').textContent = name;
+  document.getElementById('kiosk-confirm').style.display='block';
+}
+function resetKiosk(){
+  document.getElementById('intake-form').reset();
+  setCountry(COUNTRIES[0]);
+  document.getElementById('match-banner-slot').innerHTML='';
+  document.getElementById('kiosk-card').style.display='block';
+  document.getElementById('kiosk-confirm').style.display='none';
+}
+
+function setupCombo(inputId, listId, getOptions, renderItem, onSelect){
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  function show(){
+    const q = input.value.trim();
+    const opts = getOptions(q);
+    if(opts === null){
+      list.innerHTML = `<div class="combo-empty">Първо изберете марка</div>`;
+    } else if(!opts.length){
+      list.innerHTML = `<div class="combo-empty">Няма съвпадение — ще се запише както е написано</div>`;
+    } else {
+      list.innerHTML = opts.map((o,i)=>`<div class="combo-item" data-i="${i}">${renderItem(o)}</div>`).join('');
+      Array.from(list.children).forEach((el,i)=>{
+        el.addEventListener('mousedown', e=>{ e.preventDefault(); onSelect(opts[i]); list.classList.remove('open'); });
+      });
+    }
+    list.classList.add('open');
+  }
+  input.addEventListener('focus', show);
+  input.addEventListener('input', show);
+  input.addEventListener('blur', ()=> setTimeout(()=>list.classList.remove('open'), 130));
+}
+
+setupCombo('in-make','list-make',
+  q => MAKES.filter(m=>m.toLowerCase().includes(q.toLowerCase())),
+  m => m,
+  m => {
+    document.getElementById('in-make').value = m;
+    const modelInput = document.getElementById('in-model');
+    modelInput.value = '';
+    modelInput.focus();
+  }
+);
+setupCombo('in-model','list-model',
+  q => {
+    const make = document.getElementById('in-make').value.trim();
+    if(!make) return null;
+    return (CAR_DATA[make]||[]).filter(m=>m.toLowerCase().includes(q.toLowerCase()));
+  },
+  m => m,
+  m => { document.getElementById('in-model').value = m; }
+);
+function plateBadge(plate){
+  return `<span class="plate"><span class="bg">BG</span><span class="num">${plate}</span></span>`;
+}
+
+function renderCard(o){
+  const stripeVar = o.status==='received' ? 'var(--status-received)' : o.status==='progress' ? 'var(--status-progress)' : 'var(--status-ready)';
+  const callFlag = (o.status==='ready' && !o.called) ? `<span class="call-flag">🔔 Обади се</span>` : '';
+  return `<div class="card" draggable="true" ondragstart="dragStart(event,${o.id})" ondragend="dragEnd(event)" style="--stripe:${stripeVar}" onclick="openDetail(${o.id})">
+      <div class="card-top">${plateBadge(o.plate)}<span class="mono" style="font-size:11px;color:var(--ink-faint)">${o.createdAt}</span></div>
+      <div class="card-vehicle">${o.make} ${o.model} · ${o.year}</div>
+      <div class="card-customer">${o.name}</div>
+      <div class="card-issue">${o.issue}</div>
+      ${callFlag}
+    </div>`;
+}
+
+let dragId = null;
+function dragStart(ev,id){ dragId = id; ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', String(id)); ev.target.classList.add('dragging'); }
+function dragEnd(ev){ ev.target.classList.remove('dragging'); document.querySelectorAll('.col').forEach(c=>c.classList.remove('drag-over')); }
+function allowDrop(ev){ ev.preventDefault(); }
+function onDrop(ev,status){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('drag-over');
+  const id = dragId ?? +ev.dataTransfer.getData('text/plain');
+  if(id) setStatus(id, status);
+  dragId = null;
+}
+
+function render(){
+  ['received','progress','ready'].forEach(st=>{
+    const list = orders.filter(o=>o.status===st && !o.archived);
+    document.getElementById('count-'+st).textContent = list.length;
+    const box = document.getElementById('cards-'+st);
+    box.innerHTML = list.length ? list.map(renderCard).join('') : `<div class="empty-col">Няма автомобили</div>`;
+  });
+  renderHistory();
+}
+
+function renderHistory(){
+  const list = orders.filter(o=>o.archived).sort((a,b)=>(b.pickedUpAt||'').localeCompare(a.pickedUpAt||''));
+  document.getElementById('history-count').textContent = list.length + (list.length===1?' автомобил':' автомобила');
+  const box = document.getElementById('history-list');
+  box.innerHTML = list.length ? list.map(o=>{
+    const total = (o.finalPrice ?? itemsSubtotal(o)).toFixed(2);
+    return `<div class="history-row" onclick="openDetail(${o.id})">
+      ${plateBadge(o.plate)}
+      <div class="history-main">
+        <div class="history-vehicle">${o.make} ${o.model} · ${o.year}</div>
+        <div class="history-customer">${o.name}</div>
+      </div>
+      <div class="history-issue">${o.issue}</div>
+      <div class="history-date mono">${o.pickedUpAt||''}</div>
+      <div class="history-total mono">${total} лв.</div>
+    </div>`;
+  }).join('') : `<div class="empty-col">Все още няма предадени автомобили</div>`;
+}
+
+function itemsSubtotal(o){ return o.items.reduce((s,i)=>s+(+i.price||0)*(+i.qty||0),0); }
+
+function renderPanel(o){
+  const locked = o.locked;
+  const sub = itemsSubtotal(o);
+  const itemsRows = o.items.map((it,idx)=>`
+    <tr>
+      <td><input ${locked?'disabled':''} value="${it.name}" oninput="updateItem(${o.id},${idx},'name',this.value)" placeholder="Артикул / труд"></td>
+      <td class="qty"><input ${locked?'disabled':''} type="number" min="0" value="${it.qty}" oninput="updateItem(${o.id},${idx},'qty',this.value)"></td>
+      <td class="price"><input ${locked?'disabled':''} type="number" min="0" value="${it.price}" oninput="updateItem(${o.id},${idx},'price',this.value)"></td>
+      <td class="rm">${locked?'':`<button onclick="removeItem(${o.id},${idx})" aria-label="Премахни">×</button>`}</td>
+    </tr>`).join('');
+
+  const reminderBlock = o.status==='ready'
+    ? (o.called
+        ? `<div class="called-note">✓ Клиентът е уведомен, чака да го вземе.</div>`
+        : `<div class="reminder"><span class="bell">🔔</span><div><strong>Обадете се на клиента</strong><p>${o.name} — <span class="mono">${o.phone}</span> — автомобилът е готов за вземане.</p><button class="btn btn-small" style="background:var(--red);color:#fff;" onclick="markCalled(${o.id})">Отбележи че се обадих</button></div></div>`)
+    : '';
+
+  const historyBlock = o.history.length ? `
+    <div>
+      <div class="section-label">История на автомобила</div>
+      ${o.history.map(h=>`<div class="history-item"><span>${h.summary}</span><span class="d">${h.date}</span></div>`).join('')}
+    </div>` : '';
+
+  const lockedBanner = locked ? `<div class="locked-banner"><span>🔒 Поръчката е предадена и заключена.</span><button class="btn btn-small btn-ghost" onclick="reopenOrder(${o.id})">Отключи</button></div>` : '';
+
+  document.getElementById('panel').innerHTML = `
+    <div class="panel-head">
+      <button class="panel-close" onclick="closeDetail()">×</button>
+      <div class="panel-title">${plateBadge(o.plate)}<h2>${o.make} ${o.model}</h2></div>
+      <div class="panel-sub">${o.year} · ${o.mileage?o.mileage.toLocaleString('bg-BG')+' км · ':''}${o.name} · <a class="mono" href="tel:${o.phone.replace(/\s/g,'')}">${o.phone}</a></div>
+    </div>
+    <div class="panel-body">
+      ${lockedBanner}
+      <div class="stepper">
+        ${['received','progress','ready'].map(s=>`<button class="step-btn ${o.status===s?'is-active':''}" data-s="${s}" ${locked?'disabled':''} onclick="setStatus(${o.id},'${s}')">${STATUS_LABEL[s]}</button>`).join('')}
+      </div>
+      ${reminderBlock}
+      <div class="two-col">
+        <div>
+          <div class="section-label">Описан проблем (от клиента)</div>
+          <textarea ${locked?'disabled':''} oninput="updateField(${o.id},'issue',this.value)">${o.issue}</textarea>
+        </div>
+        <div>
+          <div class="section-label">Диагноза / бележки на майстора</div>
+          <textarea ${locked?'disabled':''} placeholder="Напр. предполагаема причина, план за ремонт…" oninput="updateField(${o.id},'diagnosis',this.value)">${o.diagnosis}</textarea>
+        </div>
+      </div>
+      <div>
+        <div class="section-label">Части и труд</div>
+        <div class="table-scroll">
+          <table class="items">
+            <thead><tr><th>Описание</th><th>Бр.</th><th>Цена</th><th></th></tr></thead>
+            <tbody>${itemsRows}</tbody>
+          </table>
+        </div>
+        ${locked?'':`<button class="btn btn-small btn-ghost" style="margin-top:8px;" onclick="addItem(${o.id})">+ Добави артикул</button>`}
+        <div class="items-foot"><span class="sub">Сбор от артикули</span><span class="mono">${sub.toFixed(2)} лв.</span></div>
+        <div class="final-price">
+          <label>Крайна цена (по телефона)</label>
+          <input ${locked?'disabled':''} type="number" min="0" value="${o.finalPrice ?? ''}" placeholder="${sub.toFixed(0)}" oninput="updateField(${o.id},'finalPrice',this.value===''?null:+this.value)">
+          <span class="sub">лв.</span>
+        </div>
+      </div>
+      ${historyBlock}
+      <div class="actions-row">
+        <button class="btn btn-small btn-ghost" onclick="openPdf(${o.id})">Преглед на документ (PDF)</button>
+        ${(!locked && o.status==='ready') ? `<button class="btn btn-small" style="background:var(--ink);color:var(--paper);" onclick="markPickedUp(${o.id})">Предаден на клиента</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function openDetail(id){
+  renderPanel(findOrder(id));
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('backdrop').classList.add('open');
+}
+function closeDetail(){
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('open');
+}
+function refreshOpenPanel(id){ if(document.getElementById('panel').classList.contains('open')) renderPanel(findOrder(id)); }
+
+function setStatus(id,status){
+  const o = findOrder(id); o.status = status;
+  if(status==='ready' && !o.readyAt){ o.readyAt = new Date().toLocaleDateString('bg-BG',{day:'2-digit',month:'2-digit'}); o.called=false; }
+  save(); render(); refreshOpenPanel(id);
+}
+function updateField(id,field,val){ const o=findOrder(id); o[field]=val; save(); }
+function updateItem(id,idx,field,val){ const o=findOrder(id); o.items[idx][field] = (field==='name')?val:(+val||0); save(); refreshOpenPanel(id); }
+function addItem(id){ const o=findOrder(id); o.items.push({name:'',qty:1,price:0}); save(); refreshOpenPanel(id); }
+function removeItem(id,idx){ const o=findOrder(id); o.items.splice(idx,1); save(); refreshOpenPanel(id); }
+function markCalled(id){ const o=findOrder(id); o.called=true; save(); refreshOpenPanel(id); render(); }
+function markPickedUp(id){
+  const o=findOrder(id);
+  o.locked=true; o.archived=true;
+  o.pickedUpAt = new Date().toLocaleDateString('bg-BG',{day:'2-digit',month:'2-digit'});
+  save(); render(); closeDetail();
+}
+function reopenOrder(id){ const o=findOrder(id); o.locked=false; o.archived=false; save(); render(); refreshOpenPanel(id); }
+
+function openPdf(id){
+  const o = findOrder(id);
+  const sub = itemsSubtotal(o);
+  const total = o.finalPrice ?? sub;
+  const rows = o.items.map(it=>`<tr><td>${it.name||'—'}</td><td class="num">${it.qty}</td><td class="num">${(+it.price).toFixed(2)} лв.</td><td class="num">${((+it.price)*(+it.qty)).toFixed(2)} лв.</td></tr>`).join('') || '<tr><td colspan="4" style="color:#8A93A0;">Няма добавени артикули</td></tr>';
+  document.getElementById('pdf-overlay').innerHTML = `
+    <div class="pdf-doc">
+      <div class="pdf-head">
+        <div class="liv">ЛИВ АВТО <span>СЕРВИЗ</span></div>
+        <div class="addr">ул. Промишлена 12, София<br>тел. 02 943 00 00<br>info@livauto.bg</div>
+      </div>
+      <h3>Приемо-предавателен протокол</h3>
+      <div class="pdf-grid">
+        <div><strong>${o.name}</strong><br>${o.phone}</div>
+        <div style="text-align:right;"><strong>${o.make} ${o.model}, ${o.year}</strong><br>рег. № ${o.plate}</div>
+      </div>
+      <h3>Заявен проблем</h3>
+      <div style="font-size:13px;">${o.issue}</div>
+      ${o.diagnosis?`<h3>Диагноза</h3><div style="font-size:13px;">${o.diagnosis}</div>`:''}
+      <h3>Части и труд</h3>
+      <table><thead><tr><th>Описание</th><th>Бр.</th><th>Ед. цена</th><th>Сума</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="pdf-total"><span>Обща сума:</span><span class="mono">${total.toFixed(2)} лв.</span></div>
+      <div class="pdf-close-row"><button class="btn btn-small btn-ghost" onclick="closePdf()">Затвори преглед</button></div>
+      <div class="pdf-note">Предварителен преглед на документа, който ще се генерира като PDF.</div>
+    </div>`;
+  document.getElementById('pdf-overlay').classList.add('open');
+}
+function closePdf(){ document.getElementById('pdf-overlay').classList.remove('open'); }
+
+document.getElementById('board-date').textContent = new Date().toLocaleDateString('bg-BG',{weekday:'long', day:'numeric', month:'long'});
+setCountry(COUNTRIES[0]);
+render();
+</script>
+</body>
+</html>
